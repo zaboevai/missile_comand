@@ -10,13 +10,48 @@ window.bgpic('images/background.png')
 window.screensize(screen_size[0],screen_size[1])
 window.tracer(n=2)
 
-base_x, base_y = 0, -300
+base_y = -320
 enemy_count = 10
+
+base = {'our_base': 0,
+        'nuclear': -500,
+        'kremlin': -250,
+        'skyscraper': 250,
+        'house': 500
+       }
+
+base_image = {'our_base':   ['images/base.gif', 'images/base_opened.gif'],
+              'kremlin':    ['images/kremlin_1.gif', 'images/kremlin_2.gif', 'images/kremlin_3.gif'],
+              'house':      ['images/house_1.gif', 'images/house_2.gif', 'images/house_3.gif'],
+              'nuclear':    ['images/nuclear_1.gif', 'images/nuclear_2.gif', 'images/nuclear_3.gif'],
+              'skyscraper': ['images/skyscraper_1.gif', 'images/skyscraper_2.gif', 'images/skyscraper_3.gif']
+             }
+
+class Base:
+
+    def __init__(self, x, y, name, image):
+        pen = turtle.Turtle(visible=False)
+        pen.speed(0)
+        pen.penup()
+        pen.setpos(x=x, y=y)
+        pen.pendown()
+        base_pic = image
+        window.register_shape(base_pic)
+        pen.shape(base_pic)
+        pen.showturtle()
+        self.pen = pen
+        self.base_name = name
+
+    def get_base_name(self):
+        return self.base_name
+
+    def change_image(self, image):
+        base_pic = image
+        window.register_shape(base_pic)
+        self.pen.shape(base_pic)
 
 class Missile:
     def __init__(self, x, y, color, x2, y2):
-        # self.x = x
-        # self.y = y
         self.color = color
 
         pen = turtle.Turtle(visible=False)
@@ -63,6 +98,7 @@ class Missile:
 
     def distance(self, x, y):
         return self.pen.distance(x=x, y=y)
+
     @property
     def x(self):
         return self.pen.xcor()
@@ -72,13 +108,14 @@ class Missile:
         return self.pen.ycor()
 
 def fire_missile(x, y):
-    info = Missile(color='white',x = base_x, y = base_y, x2= x, y2 = y)
+    info = Missile(color='white',x = base['our_base'], y = base_y, x2= x, y2 = y)
     our_missiles.append(info)
+    our_base.change_image(base_image['our_base'][1])
 
-def fire_enemy_missile():
-    x = rnd.randint(-600, 600)
+def fire_enemy_missile(enemy_x, enemy_y):
+    x = rnd.randint(-100, 100)
     y = 400
-    info = Missile(color='black', x=x, y=y, x2=base_x, y2=base_y)
+    info = Missile(color='orange', x=x, y=y, x2=enemy_x, y2=enemy_y-30)
     enemy_missiles.append(info)
 
 
@@ -99,34 +136,25 @@ def check_interception():
                 enemy_missile.state = 'dead'
 
 
-def create_base(x,y):
-    our_base = turtle.Turtle()
-    our_base.speed(0)
-    our_base.penup()
-    our_base.setpos(x=x, y=y)
-    our_base.pendown()
-    base_pic = 'images/base.gif'
-    window.register_shape(base_pic)
-    our_base.shape(base_pic)
-    return our_base
-
-
 def check_enemy_count():
-    if len(enemy_missiles) < enemy_count:
-        fire_enemy_missile()
+    for key in base:
+        if len(enemy_missiles) < enemy_count:
+            fire_enemy_missile(base[key], base_y)
 
 def game_over():
     return base_health < 0
 
 
-def check_impact():
+def check_impact(target):
     global base_health
     global hit
-    for enemy_missile in enemy_missiles:
-        if enemy_missile.state != 'explode':
-            continue
-        if enemy_missile.pen.distance(x=base_x, y=base_y) < enemy_missile.radius*10:
-            base_health -= 100
+
+    for key in target:
+        for enemy_missile in enemy_missiles:
+            if enemy_missile.state != 'explode':
+                continue
+            if enemy_missile.pen.distance(x=target[key], y=base_y) < enemy_missile.radius*10:
+                base_health -= 100
 
 
 # def check_base_health(hit):
@@ -143,12 +171,16 @@ def check_impact():
 our_missiles = []
 enemy_missiles = []
 our_bases = []
-tick_count = 0
 base_health = 2000
 hit = 0
 
+for key in base:
+    if key == 'our_base':
+        our_base = Base(x=base[key],y=base_y, name=key, image=base_image[key][0])
+    else:
+        others_basis = Base(x=base[key],y=base_y, name=key, image=base_image[key][0])
+
 window.onclick(fire_missile)
-our_base = create_base(x=base_x,y=base_y)
 
 
 
@@ -157,14 +189,11 @@ while True:
 
     if game_over():
         continue
-    check_impact()
+    check_impact(target=base)
     # if check_base_health(hit)
     check_enemy_count()
     check_interception()
     moveMissile(missiles=our_missiles)
     moveMissile(missiles=enemy_missiles)
-
-    # remove_dead_missiles(our_missiles)
-    # remove_dead_missiles(enemy_missiles)
 
 

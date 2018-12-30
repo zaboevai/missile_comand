@@ -1,3 +1,5 @@
-for i in range(1,9):
-   print(str(i)+' - '+str(i%3))
+inpt = input('Введите текст:')
+print(inpt)
 
+my_list = [1,2,3,4]
+my_list.sort()
