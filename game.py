@@ -6,8 +6,8 @@ import os
 
 
 BASE_PATH = os.path.dirname(__file__)
-ENEMY_MISSILE_COUNT = 1
-OUR_MISSILE_COUNT = 5
+ENEMY_MISSILE_COUNT = 5
+OUR_MISSILE_COUNT = 10
 BASE_X, BASE_Y = 0, -320
 
 
@@ -47,6 +47,8 @@ class Building:
             self.pen.shape(pic_path)
             self.pen.shape(pic_path)
 
+    def is_alive(self):
+        return self.health > 0
 
 class MissileBase(Building):
     INITIAL_HEALTH = 2000
@@ -113,7 +115,7 @@ class Missile:
 
 def fire_missile(x, y):
     if len(our_missiles) < 5:
-        info = Missile(color='red', x=our_base.x, y=our_base.y, x2=x, y2=y)
+        info = Missile(color='red', x=our_base.x, y=our_base.y+20, x2=x, y2=y)
         our_missiles.append(info)
 
 
@@ -138,7 +140,6 @@ def check_interception():
         if our_missile.state != 'explode':
             continue
         for enemy_missile in enemy_missiles:
-            print(enemy_missile.distance(our_missile.x, our_missile.y), our_missile.radius)
             if enemy_missile.distance(our_missile.x, our_missile.y) < our_missile.radius*10:
                 enemy_missile.state = 'dead'
 
@@ -147,8 +148,9 @@ def game_over():
     return our_base.health < 0
 
 def check_enemy_count():
-    target = rnd.choice(buildings)
-    if len(enemy_missiles) < ENEMY_MISSILE_COUNT:
+    alive_buildings = [b for b in buildings if b.is_alive()]
+    if len(enemy_missiles) < ENEMY_MISSILE_COUNT and alive_buildings:
+        target = rnd.choice(alive_buildings)
         fire_enemy_missile(target.x, target.y)
 
 
