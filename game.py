@@ -1,6 +1,7 @@
 import math
 import turtle
 import random as rnd
+import time
 import os
 
 
@@ -11,21 +12,25 @@ BASE_X, BASE_Y = 0, -320
 
 
 class Building:
+    INITIAL_HEALTH = 1000
 
     def __init__(self, x, y, name):
         self.name = name
+        self.x = x
+        self.y = y
         pen = turtle.Turtle(visible=False)
         pen.speed(0)
         pen.penup()
-        pen.setpos(x=x, y=y)
+        pen.setpos(x=self.x, y=self.y)
         pen.pendown()
         pic_path = os.path.join(BASE_PATH, 'images', self.get_pic_name())
         print(pic_path)
         window.register_shape(pic_path)
         pen.shape(pic_path)
         pen.showturtle()
+
         self.pen = pen
-        self.health = 2000
+        self.health = self.INITIAL_HEALTH
 
     def get_pic_name(self):
         return f'{self.name}_1.gif'
@@ -36,15 +41,9 @@ class Building:
         window.register_shape(base_pic)
         self.pen.shape(base_pic)
 
-    @property
-    def x(self):
-        return self.pen.xcor()
-
-    @property
-    def y(self):
-        return self.pen.ycor()
 
 class MissileBase(Building):
+    INITIAL_HEALTH = 2000
 
     def get_pic_name(self):
         return f'{self.name}.gif'
@@ -64,14 +63,15 @@ class Missile:
         pen.setheading(heading)
         pen.showturtle()
         self.pen = pen
+
         self.state = 'launched'
         self.target = x2, y2
-        self.radius = 1
+        self.radius = 0
 
     def step(self):
         if self.state == 'launched':
-            self.pen.forward(1)
-            self.pen.clear()
+            self.pen.forward(4)
+            # self.pen.clear()
             if self.pen.distance(x=self.target[0], y=self.target[1]) < 20:
                 self.state = 'explode'
                 # self.pen.color(self.pen.color)
@@ -79,24 +79,16 @@ class Missile:
 
         elif self.state == 'explode':
             self.radius += 1
-            if self.radius > 4:
+            if self.radius > 5:
                 self.pen.clear()
                 self.pen.hideturtle()
                 self.state = 'dead'
             else:
-                self.pen.shape('circle')
                 self.pen.shapesize(self.radius)
 
         elif self.state == 'dead':
-            self.radius += 1
-            if self.radius > 4:
-                self.pen.clear()
-                self.pen.hideturtle()
-            else:
-                self.pen.shape('circle')
-                self.pen.shapesize(self.radius)
-
-
+            self.pen.clear()
+            self.pen.hideturtle()
 
 
     def distance(self, x, y):
@@ -121,12 +113,12 @@ class Missile:
 
 def fire_missile(x, y):
     if len(our_missiles) < 5:
-        info = Missile(color='red', x=base['our_base']['x_cor'], y=BASE_Y, x2=x, y2=y)
+        info = Missile(color='red', x=our_base.x, y=our_base.y, x2=x, y2=y)
         our_missiles.append(info)
 
 
 def fire_enemy_missile(enemy_x, enemy_y):
-    x = rnd.randint(-100, 100)
+    x = rnd.randint(-200, 200)
     y = 400
     info = Missile(color='orange', x=x, y=y, x2=enemy_x, y2=enemy_y-30)
     enemy_missiles.append(info)
@@ -157,15 +149,15 @@ def game_over():
 
 def check_base_fire():
     if len(our_missiles) > 0:
-        base[0].change_image(base['our_base']['image'][1])
+        our_base.change_image(our_base['our_base']['image'][1])
     elif len(our_missiles) == 0:
-        base[0].change_image(base['our_base']['image'][0])
+        our_base.change_image(our_base['our_base']['image'][0])
 
 
 def check_enemy_count():
-    num = rnd.randint(0, 4)
+    target = rnd.choice(buildings)
     if len(enemy_missiles) < ENEMY_MISSILE_COUNT:
-        fire_enemy_missile(our_base.x, our_base.y)
+        fire_enemy_missile(target.x, target.y)
 
 
 def check_impact():
@@ -176,23 +168,18 @@ def check_impact():
         if enemy_missile.state != 'explode':
             continue
         else:
-            # for key in target:
-            print(round(enemy_missile.pen.distance(x=enemy_missile.target_x, y=enemy_missile.target_y)),enemy_missile.radius)
+            for building in buildings:
 
-            if enemy_missile.pen.distance(x=enemy_missile.target_x,
-                                          y=enemy_missile.target_y) < enemy_missile.radius*10:
-                base.health -= 100
-                print(base.health)
-                # for base in base:
-                #     if base.x == enemy_missile.target_x and base.y == enemy_missile.target_y:
-                #         base.health -= 100
-                #         print(base.health)
-
+                if enemy_missile.pen.distance(x=building.x,
+                                              y=building.y) < enemy_missile.radius*20:
+                    building.health -= 100
+                    print(f'{building.name} - {building.health}')
+                    break
 
 def check_base_health():
     for base in buildings:
         if base.health < 2000:
-            print(base, base.health)
+            print(base.health)
 
 
 screen_size = [1200, 800]
@@ -228,12 +215,14 @@ while True:
 
     if game_over():
         continue
-    # check_impact()
-    check_base_health()
+
     check_enemy_count()
-    #
-    # check_interception()
+    check_impact()
+    check_interception()
+    # check_base_health()
+
     # check_base_fire()
-    #
+
     move_missile(missiles=our_missiles)
     move_missile(missiles=enemy_missiles)
+    time.sleep(.01)
