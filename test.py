@@ -1,5 +1,7 @@
-inpt = input('Введите текст:')
-print(inpt)
+t = []
+for i in range(-6,7).__reversed__():
+    if i == 0:
+        continue
+    t.append(i)
 
-my_list = [1,2,3,4]
-my_list.sort()
+print(t)
