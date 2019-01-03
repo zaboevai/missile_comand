@@ -1,15 +1,19 @@
-import math
 import turtle
 import random as rnd
 import time
 import os
 
-
 BASE_PATH = os.path.dirname(__file__)
-ENEMY_MISSILE_COUNT = 5
+ENEMY_MISSILE_COUNT = 10
 OUR_MISSILE_COUNT = 10
 BASE_X, BASE_Y = 0, -320
 
+BUILDINGS_INFOS = {
+    'nuclear': [BASE_X - 500, BASE_Y],
+    'kremlin': [BASE_X - 250, BASE_Y],
+    'skyscraper': [BASE_X + 250, BASE_Y],
+    'house': [BASE_X + 500, BASE_Y]
+}
 
 class Building:
     INITIAL_HEALTH = 1000
@@ -31,6 +35,14 @@ class Building:
 
         self.pen = pen
 
+        title = turtle.Turtle(visible=False)
+        title.speed(0)
+        title.penup()
+        title.setpos(x=self.x, y=self.y - 75)
+        title.color('white')
+        title.write(str(self.health), align="center", font=["Arial", 12, "bold"])
+        self.title = title
+        self.title_health = self.health
 
     def get_pic_name(self):
         if self.health < self.INITIAL_HEALTH*0.2:
@@ -46,9 +58,16 @@ class Building:
             window.register_shape(pic_path)
             self.pen.shape(pic_path)
             self.pen.shape(pic_path)
+        if self.health != self.title_health:
+            self.title_health = self.health
+            if self.title_health <= 0:
+                self.health = 0
+            self.title.clear()
+            self.title.write(str(self.health), align="center", font=["Arial", 12, "bold"])
 
     def is_alive(self):
         return self.health > 0
+
 
 class MissileBase(Building):
     INITIAL_HEALTH = 2000
@@ -85,7 +104,6 @@ class Missile:
             self.pen.clear()
             if self.pen.distance(x=self.target[0], y=self.target[1]) < 20:
                 self.state = 'explode'
-                # self.pen.color(self.pen.color)
                 self.pen.shape('circle')
 
         elif self.state == 'explode':
@@ -101,7 +119,6 @@ class Missile:
             self.pen.clear()
             self.pen.hideturtle()
 
-
     def distance(self, x, y):
         return self.pen.distance(x=x, y=y)
 
@@ -113,17 +130,21 @@ class Missile:
     def y(self):
         return self.pen.ycor()
 
+
 def fire_missile(x, y):
     if len(our_missiles) < 5:
         info = Missile(color='red', x=our_base.x, y=our_base.y+20, x2=x, y2=y)
         our_missiles.append(info)
 
 
-def fire_enemy_missile(enemy_x, enemy_y):
+def fire_enemy_missile():
     x = rnd.randint(-200, 200)
     y = 400
-    info = Missile(color='orange', x=x, y=y, x2=enemy_x, y2=enemy_y-30)
-    enemy_missiles.append(info)
+    alive_buildings = [b for b in buildings if b.is_alive()]
+    if alive_buildings:
+        target = rnd.choice(alive_buildings)
+        info = Missile(color='orange', x=x, y=y, x2=target.x, y2=target.y)
+        enemy_missiles.append(info)
 
 
 def move_missile(missiles):
@@ -145,17 +166,15 @@ def check_interception():
 
 
 def game_over():
-    return our_base.health < 0
+    return our_base.health <= 0
+
 
 def check_enemy_count():
-    alive_buildings = [b for b in buildings if b.is_alive()]
-    if len(enemy_missiles) < ENEMY_MISSILE_COUNT and alive_buildings:
-        target = rnd.choice(alive_buildings)
-        fire_enemy_missile(target.x, target.y)
+    if len(enemy_missiles) < ENEMY_MISSILE_COUNT:
+        fire_enemy_missile()
 
 
 def check_impact():
-    # global game_end
 
     for enemy_missile in enemy_missiles:
 
@@ -167,42 +186,7 @@ def check_impact():
                 if enemy_missile.pen.distance(x=building.x,
                                               y=building.y) < enemy_missile.radius*20:
                     building.health -= 100
-                    print(f'{building.name} - {building.health}')
                     break
-
-def check_base_health():
-    for base in buildings:
-        if base.health < 2000:
-            print(base.health)
-
-
-screen_size = [1200, 800]
-window = turtle.Screen()
-window.setup(1200+3, 800+3)
-window.bgpic(os.path.join(BASE_PATH, 'images', 'background.png'))
-window.screensize(screen_size[0], screen_size[1])
-window.tracer(2)
-
-our_missiles = []
-enemy_missiles = []
-buildings = []
-game_end = False
-
-our_base = MissileBase(x=BASE_X, y=BASE_Y, name='base')
-buildings.append(our_base)
-
-buildings_infos = {
-    'nuclear': [BASE_X - 500, BASE_Y],
-    'kremlin': [BASE_X - 250, BASE_Y],
-    'skyscraper': [BASE_X + 250, BASE_Y],
-    'house': [BASE_X + 500, BASE_Y]
-}
-
-for name, position in buildings_infos.items():
-    others_base = Building(x=position[0], y=position[1], name=name)
-    buildings.append(others_base)
-
-window.onclick(fire_missile)
 
 
 def draw_building():
@@ -210,17 +194,59 @@ def draw_building():
         building.draw()
 
 
+screen_size = [1200, 800]
+window = turtle.Screen()
+window.setup(1200+3, 800+3)
+window.screensize(screen_size[0], screen_size[1])
+
+
+def game():
+    global our_missiles, enemy_missiles, buildings, our_base
+
+    window.clear()
+    window.tracer(n=2)
+    window.bgpic(os.path.join(BASE_PATH, 'images', 'background.png'))
+    window.onclick(fire_missile)
+
+    our_missiles = []
+    enemy_missiles = []
+    buildings = []
+
+    our_base = MissileBase(x=BASE_X, y=BASE_Y, name='base')
+    buildings.append(our_base)
+
+    for name, position in BUILDINGS_INFOS.items():
+        others_base = Building(x=position[0], y=position[1], name=name)
+        buildings.append(others_base)
+
+    while True:
+        window.update()
+
+
+
+        if game_over():
+            break
+
+        check_enemy_count()
+        check_impact()
+        check_interception()
+        draw_building()
+
+        move_missile(missiles=our_missiles)
+        move_missile(missiles=enemy_missiles)
+        time.sleep(.01)
+
+    pen = turtle.Turtle(visible=False)
+    pen.speed(0)
+    pen.penup()
+    pen.setpos(x=0, y=0)
+    pen.color('white')
+    pen.write('GAME OVER', align="center", font=["Arial", 60, "bold"])
+
+
 while True:
-    window.update()
+    game()
 
-    if game_over():
-        continue
-
-    check_enemy_count()
-    check_impact()
-    check_interception()
-    draw_building()
-
-    move_missile(missiles=our_missiles)
-    move_missile(missiles=enemy_missiles)
-    time.sleep(.01)
+    answer = window.textinput('Игра', 'Еще разок ?')
+    if answer == None:
+        break
