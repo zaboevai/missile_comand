@@ -52,6 +52,9 @@ class MissileBase(Building):
     INITIAL_HEALTH = 2000
 
     def get_pic_name(self):
+        for missile in our_missiles:
+            if missile.distance(self.x, self.y) < 120:
+                return f'{self.name}_opened.gif'
         return f'{self.name}.gif'
 
 
@@ -77,7 +80,7 @@ class Missile:
     def step(self):
         if self.state == 'launched':
             self.pen.forward(4)
-            # self.pen.clear()
+            self.pen.clear()
             if self.pen.distance(x=self.target[0], y=self.target[1]) < 20:
                 self.state = 'explode'
                 # self.pen.color(self.pen.color)
@@ -107,15 +110,6 @@ class Missile:
     @property
     def y(self):
         return self.pen.ycor()
-
-    @property
-    def target_x(self):
-        return self.target[0]
-
-    @property
-    def target_y(self):
-        return self.target[1]
-
 
 def fire_missile(x, y):
     if len(our_missiles) < 5:
@@ -151,14 +145,6 @@ def check_interception():
 
 def game_over():
     return our_base.health < 0
-
-
-def check_base_fire():
-    if len(our_missiles) > 0:
-        our_base.change_image(our_base['our_base']['image'][1])
-    elif len(our_missiles) == 0:
-        our_base.change_image(our_base['our_base']['image'][0])
-
 
 def check_enemy_count():
     target = rnd.choice(buildings)
