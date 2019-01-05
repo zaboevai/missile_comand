@@ -4,8 +4,8 @@ import time
 import os
 
 BASE_PATH = os.path.dirname(__file__)
-ENEMY_MISSILE_COUNT = 10
-OUR_MISSILE_COUNT = 10
+ENEMY_MISSILE_COUNT = 5
+OUR_MISSILE_COUNT = 5
 BASE_X, BASE_Y = 0, -320
 
 BUILDINGS_INFOS = {
@@ -91,8 +91,15 @@ class Missile:
         pen.pendown()
         heading = pen.towards(x=x2, y=y2)
         pen.setheading(heading)
+        if self.color == 'blue':
+            pic_path = os.path.join(BASE_PATH, 'images', 'missile.gif')
+        else:
+            pic_path = os.path.join(BASE_PATH, 'images', 'missile2.gif')
+        window.register_shape(pic_path)
+        pen.shape(pic_path)
         pen.showturtle()
         self.pen = pen
+
 
         self.state = 'launched'
         self.target = x2, y2
@@ -133,7 +140,7 @@ class Missile:
 
 def fire_missile(x, y):
     if len(our_missiles) < 5:
-        info = Missile(color='red', x=our_base.x, y=our_base.y+20, x2=x, y2=y)
+        info = Missile(color='blue', x=our_base.x, y=our_base.y+20, x2=x, y2=y)
         our_missiles.append(info)
 
 
@@ -143,7 +150,7 @@ def fire_enemy_missile():
     alive_buildings = [b for b in buildings if b.is_alive()]
     if alive_buildings:
         target = rnd.choice(alive_buildings)
-        info = Missile(color='orange', x=x, y=y, x2=target.x, y2=target.y)
+        info = Missile(color='red', x=x, y=y, x2=target.x, y2=target.y)
         enemy_missiles.append(info)
 
 
@@ -185,7 +192,7 @@ def check_impact():
 
                 if enemy_missile.pen.distance(x=building.x,
                                               y=building.y) < enemy_missile.radius*20:
-                    building.health -= 100
+                    building.health -= 50
                     break
 
 
